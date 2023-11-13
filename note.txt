@@ -1,0 +1,171 @@
+step 0 create namespace for all the deployments 
+step 1 deploy strimzi application that simplifies the process to mointor the kafka clusters
+        each operator manages kafka and performs a seperate function
+
+        using helm install the repo 
+        helm repo add strimzi https://strimzi.io/charts
+
+        then install using 
+        helm install my-strimzi-kafka-operator strimzi/strimzi-kafka-operator --version 0.38.0 -n debezium
+    
+    it contains
+
+- Cluster Operator  for kafka clusters
+The Cluster Operator handles the deployment and management of Apache Kafka clusters on Kubernetes. It automates the setup of Kafka brokers, and other Kafka components and resources.
+including dependies like zookeeper
+
+- Topic Operator   for topics
+The Topic Operator manages the creation, configuration, and deletion of topics within Kafka clusters.
+
+- User Operator  for kafka users
+The User Operator manages Kafka users that require access to Kafka brokers.
+
+When you deploy Strimzi, you first deploy the Cluster Operator. The Cluster Operator is then ready to handle the deployment of Kafka. You can also deploy the Topic Operator and User Operator using the Cluster Operator (recommended) or as standalone operators. You would use a standalone operator with a Kafka cluster that is not managed by the Cluster Operator.
+
+
+step 2 deploy apache kafka 
+
+- the components deployed in kafka
+ Kafka cluster of broker nodes
+
+ZooKeeper cluster of replicated ZooKeeper instances
+
+Kafka Connect cluster for external data connections
+
+Kafka MirrorMaker cluster to mirror the Kafka cluster in a secondary cluster
+
+Kafka Exporter to extract additional Kafka metrics data for monitoring
+
+Kafka Bridge to make HTTP-based requests to the Kafka cluster
+
+Cruise Control to rebalance topic partitions across broker nodes
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+commands
+
+{ 508  kubectl apply -f data-collect.yaml
+  509  helm repo add strimzi https://strimzi.io/charts
+  510  helm install my-strimzi-kafka-operator strimzi/strimzi-kafka-operator --version 0.38.0 -n debezium
+  511  helm manifest my-strimzi-kafka-operator strimzi/strimzi-kafka-operator
+  512  helm get manifest my-strimzi-kafka-operator strimzi/strimzi-kafka-operator
+  513  helm get manifest my-strimzi-kafka-operator
+  514  helm template my-strimzi-kafka-operator strimzi/strimzi-kafka-operator
+  515  echo  'admin' | base64
+  516  echo  'password' | base64
+  517  kubectl apply -f secrets.yaml
+  518  kubectl apply -f rbac-debezium-sql.yaml
+  531  kubectl apply -f rbac-cluster-binding.yaml
+  532  kubectl get all -n debezium
+  533  kubectl get serviceaccount -n debzium
+  534  kubectl get rolebinding -n debezium
+  535  kubectl get role -n debezium
+  536  kubectl delete -f rbac-cluster-binding.yaml
+  537  kuebctl apply -f serviceaccount.yaml
+  538  kubectl apply -f serviceaccount.yaml
+  539  kubectl apply -f rbac-cluster-binding.yaml
+  540  kubectl get role -n debezium
+  541  kubectl get rolebinding -n debezium
+  542  kubectl get clusterrolebinding -n debezium
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+### Step 1: Encode PostgreSQL admin username and password using base64
+    Linux
+        # Encode a string to base64
+            echo  'admin' | base64
+       
+        # Decode our base64 string
+            echo 'YQBkAG0AaQBuAA==' | base64 --decode
+
+    Windows PowerShell
+        # Encode a string
+            $MYTEXT = 'admin'
+            $ENCODED = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($MYTEXT))
+            Write-Output $ENCODED
+
+        # Decode a string
+            $MYTEXT = 'YQBkAG0AaQBuAA=='
+            $DECODED = [System.Text.Encoding]::Unicode.GetString([System.Convert]::FromBase64String($MYTEXT))
+            Write-Output $DECODED
+
+    Python
+        # Encoding a string
+            import base64
+            encoded = base64.b64encode(b'admin')
+            encoded
+
+        # Decoding
+            decoded = base64.b64decode(b'dGhlZGV2b3BzbGlmZS5jb20=')
+            decoded

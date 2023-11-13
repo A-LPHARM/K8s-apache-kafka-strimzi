@@ -1,0 +1,125 @@
+apiVersion: kafka.strimzi.io/v1beta2
+kind: Kafka
+metadata:
+  name: my-cluster
+  namespace: debezium
+spec:
+  kafka:
+    replicas: 3 
+    version: 3.6.0 
+    logging: 
+      type: inline
+      loggers:
+        kafka.root.logger.level: INFO
+    resources: 
+      requests:
+        memory: 64Gi
+        cpu: "8"
+      limits:
+        memory: 64Gi
+        cpu: "12"
+    readinessProbe: 
+      initialDelaySeconds: 15
+      timeoutSeconds: 5
+    livenessProbe:
+      initialDelaySeconds: 15
+      timeoutSeconds: 5
+    listeners: 
+      - name: plain 
+        port: 9092 
+        type: internal 
+        tls: false 
+        # configuration:
+        #   useServiceDnsDomain: true 
+      - name: tls
+        port: 9093
+        type: internal
+        tls: true
+        authentication: 
+          type: tls
+      - name: external 
+        port: 9094
+        type: route
+        tls: false ##we are not TLS encyrption for external dns to get more information visit strimzi.io documentation
+        # configuration:
+        #   brokerCertChainAndKey: # (16)
+        #     secretName: my-secret
+        #     certificate: my-certificate.crt
+        #     key: my-key.key
+    authorization: 
+      type: simple
+    config:
+      auto.create.topics.enable: "false"
+      offsets.topic.replication.factor: 3
+      transaction.state.log.replication.factor: 3
+      transaction.state.log.min.isr: 2
+      default.replication.factor: 3
+      min.insync.replicas: 2
+      inter.broker.protocol.version: "3.6"
+    storage: # (19)
+      type: persistent-claim # (20)
+      size: 100Gi
+    rack: # (21)
+      topologyKey: topology.kubernetes.io/zone
+    metricsConfig: # (22)
+      type: jmxPrometheusExporter
+      valueFrom:
+        configMapKeyRef: # (23)
+          name: my-config-map
+          key: my-key
+    # ...
+  zookeeper: # (24)
+    replicas: 3 # (25)
+    logging: # (26)
+      type: inline
+      loggers:
+        zookeeper.root.logger: INFO
+    resources:
+      requests:
+        memory: 8Gi
+        cpu: "2"
+      limits:
+        memory: 8Gi
+        cpu: "2"
+    storage:
+      type: persistent-claim
+      size: 100Gi
+    metricsConfig:
+      # ...
+  entityOperator: # (27)
+    tlsSidecar: # (28)
+      resources:
+        requests:
+          cpu: 200m
+          memory: 64Mi
+        limits:
+          cpu: 500m
+          memory: 128Mi
+    topicOperator:
+      watchedNamespace: my-topic-namespace
+      reconciliationIntervalSeconds: 60
+      logging: # (29)
+        type: inline
+        loggers:
+          rootLogger.level: INFO
+      resources:
+        requests:
+          memory: 512Mi
+          cpu: "1"
+        limits:
+          memory: 512Mi
+          cpu: "1"
+    userOperator:
+      watchedNamespace: my-topic-namespace
+      reconciliationIntervalSeconds: 60
+      logging: # (30)
+        type: inline
+        loggers:
+          rootLogger.level: INFO
+      resources:
+        requests:
+          memory: 512Mi
+          cpu: "1"
+        limits:
+          memory: 512Mi
+          cpu: "1"
