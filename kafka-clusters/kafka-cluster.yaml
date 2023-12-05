@@ -2,7 +2,7 @@ apiVersion: kafka.strimzi.io/v1beta2
 kind: Kafka
 metadata:
   name: my-cluster
-  namespace: debezium
+  namespace: kafka
 spec:
   kafka:
     replicas: 3 
@@ -24,7 +24,7 @@ spec:
     livenessProbe:
       initialDelaySeconds: 15
       timeoutSeconds: 5
-    listeners: 
+    listeners:   # here we are using the kafka client to send a message from the bootstarp to the brokers who have different listeners port :9092 or 9093 or 9094
       - name: plain 
         port: 9092 
         type: internal 

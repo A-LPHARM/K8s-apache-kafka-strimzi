@@ -2,12 +2,14 @@ apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaConnect
 metadata:
   name: debezium-connect-cluster
+  namespace: kafka
   annotations:
     strimzi.io/use-connector-resources: "true"
 spec:
   version: 3.1.0
+  image: henriksin1/connect-debezium
   replicas: 1
-  bootstrapServers: debezium-cluster-kafka-bootstrap:9092
+  bootstrapServers: my-cluster-kafka-bootstrap:9092
   config:
     config.providers: secrets
     config.providers.secrets.class: io.strimzi.kafka.KubernetesSecretConfigProvider
@@ -16,15 +18,6 @@ spec:
     config.storage.topic: connect-cluster-configs
     status.storage.topic: connect-cluster-status
     # -1 means it will use the default replication factor configured in the broker
-    config.storage.replication.factor: -1
-    offset.storage.replication.factor: -1
-    status.storage.replication.factor: -1
-  build:
-    output:
-      type: docker
-      image: 10.110.154.103/debezium-connect-mysql:latest
-    plugins:
-      - name: debezium-mysql-connector
-        artifacts:
-          - type: tgz
-            url: https://repo1.maven.org/maven2/io/debezium/debezium-connector-mysql/{debezium-version}/debezium-connector-mysql-{debezium-version}-plugin.tar.gz
+    config.storage.replication.factor: 1
+    offset.storage.replication.factor: 1
+    status.storage.replication.factor: 1

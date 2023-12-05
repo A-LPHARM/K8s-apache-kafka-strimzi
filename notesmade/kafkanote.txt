@@ -1,0 +1,452 @@
+first if you havnt used kafka before use it on your laptop by running 
+1. install java JDK 11
+    sudo subscription-manager repos --enable "rhel-*-optional-rpms" --enable "rhel-*-extras-rpms"
+then run
+    sudo yum install java-11-openjdk-devel -y
+then run
+    java -version
+
+then install the kafka
+Step 1: Download the code
+Download the 3.6.0 release and un-tar it. Note that there are multiple downloadable Scala versions and we choose to use the recommended version (2.13) here:
+sudo wget https://dlcdn.apache.org/kafka/3.6.0/kafka_2.13-3.6.0.tgz
+then confirm that you downloaded the correct file
+
+TO VERIFY THE INTERGRITY OF THE KAFKA 
+ on linux
+ sha512sum kafka_2.13-3.6.0.tgz
+
+ on windows 
+
+ certUtil -hashfile kafka_2.13-3.6.0 SHA512
+
+then on the website click on the sha512 link and it should be the same
+
+then 
+sudo tar -xzf kafka_2.13-3.6.0.tgz
+then 
+cd kafka_2.13-3.6.0
+ 
+ 
+1.  so we start the zookeeper
+
+ after you are inside the directory of the kafka 
+ ls 
+
+ then 
+
+make sure you start zookeeper first and 
+stop zookeeper 
+to start 
+you run
+
+sudo ./bin/zookeeper-server-start.sh config/zookeeper.properties
+
+the config/zookeeper contains some default values for you to get started
+
+it starts the zookeeper node and we check for a message in the logs that zookeeper is binding to the port 0.0.0.0/0.0.0.0:2181
+the logs we see is the tailing of the logs 
+
+2. - OPEN another terminal session 
+then
+
+cd into the kafka
+
+then run 
+
+sudo ./bin/kafka-server-start.sh config/server.properties
+
+the config file is there 
+
+it prints out all the configuration output is printed out 
+
+then you confirm if the kafka is started by looking out for 
+
+kafka the server is running 
+
+
+3. how to create a topic 
+
+create an event to the topic and send to the consumer 
+use a new terminal
+
+./bin/kafka-topics.sh --create --topic mytopic --replication-factor 1 --partitions 1  --bootstrap-server localhost:9092
+
+
+the replication is to know the number of repliaction kafka to store incase one broker goes down 
+
+the partitions is the mechanism that allows the cosumed applications to scale 
+2 consumer  needs 2 partitions
+we run the bootstrap {bootstrap server helps to locate the kafka server running}
+we provide the bootstrap server this is the location of kafka
+
+so the bootstrap is where we send the topics
+
+to confirm the list of topics available 
+
+./bin/kafka-topics.sh --list --bootstrap-server localhost:9092
+
+it echos  need the topic
+
+4. 
+ then we use another shell command for the producer event
+
+./bin/kafka-console-producer.sh --bootstrap-server localhost:9093 --topic my-topic
+
+it produces an interactive mode where we can type some event
+
+hello my dear
+
+5. 
+then run a consumer shell
+using a new tab
+
+bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic my topic --from-beginning # so kafka persist events even after they have been consumed, so we decide to consume from the beginning or the end
+
+
+so you have created a topic produced them and consumed them
+
+now in production we need more than one broker 
+to produce more brokers or multi brokers
+
+1. start zookeeper
+
+2. start a broker
+
+3. now we start another broker
+to start it we create a properties file for it
+we copy the files from config/server.properties to a new file config/server2.properties
+
+  sudo cp config/server.properties config/server-1.properties
+
+then edit it
+
+sudo vi config/server-1.properties
+
+so we change the port and the log directory
+find this listerners using 
+/listerners
+
+then move and 
+
+remove the #  remove the default port from 9092 to 9092
+
+#   FORMAT:
+#     listeners = listener_name://host_name:port
+#   EXAMPLE:
+#     listeners = PLAINTEXT://your.host.name:9092
+listeners=PLAINTEXT://:9093 
+
+then repeat for the logs
+
+/logs
+
+############################# Log Basics #############################
+
+# A comma separated list of directories under which to store log files
+log.dirs=/tmp/kafka-logs-1
+
+# The default number of log partitions per topic. More partitions allow greater
+# parallelism for consumption, but this will also result in more files across
+# the brokers.
+num.partitions=1
+
+then enter
+
+NOTE EACH KFAKA BROKER HAVE TO HAVE ITS OWN UNIQUE ID  
+ SO WE NEED TO CHANGE THE UNIQUE ID ON THE 
+ CONFIG file
+
+
+ NOTE THE CONFIGURATIONS TO CHANGE 
+ IS 
+ i. log 
+ ii. port
+ iii. unique ID
+
+so we are creating another broker
+
+now repeat to create another broker
+
+sudo cp config/server.properties config/server-2.properties
+
+sudo vi config/server-2.properties
+
+
+then modify 
+
+i. the log - by seraching for it /log 
+                then add log.dirs=/tmp/kafka-logs-2
+ii. the port - find the port /listener_name
+                then remove the # and add 9094
+iii. the broker id 
+                find the broker id and add
+
+then you create the brokerby running of all the there
+
+sudo ./bin/kafka-server-start.sh config/server-1.properties
+
+sudo ./bin/kafka-server-start.sh config/server-2.properties
+
+then run the topics
+
+./bin/kafka-topics.sh --create --topic my-topic  --partitions 1  --bootstrap-server localhost:9092 --replication-factor 3
+
+then describing the topics
+
+./bin/kafka-topics.sh --describe --topic my-topic --bootstrap-server localhost:9092
+Topic: my-topic TopicId: TUbEb1bcQFmmxxy5g69gzQ PartitionCount: 1       ReplicationFactor: 3    Configs: 
+        Topic: my-topic Partition: 0    Leader: 0       Replicas: 0,2,1 Isr: 0,2,1
+
+        0,1,2  are the number of topics
+        0 is the leader followed by 1 and 2
+
+so create an envirnoment to run data as topics 
+
+create a file in config
+sudo vi config/debug-tools-log4j.properties
+
+then create an envirnoment
+
+export KAFKA_OPTS="Dlog4j.configuration=file:config/debug-tools-log4j.properties"
+
+then you create topics
+
+
+NOTE THAT THE BROKER ID IS SET IN THE properties
+SERVER.properties
+AND ALSO 
+META.properties
+
+NOW WHEN WE DECIDED TO CREATE THE BROKERS 
+WE CHANGED 
+THE LOGS directories
+THE port
+THE BROKERS ID
+
+WHEN WE ARE CREATING THE KAFKA IN CONTAINERS
+WE DONT WORRY ABOUT THE PORTS THE PORTS CLASHING BUT MAP IT TO DIFFERENT PORTS ON THE HOST
+
+LIKE NODES
+
+FOR THE LOGS directories WE CAN SPECIFY A VOLUME MOUNT SO DIFFERENT KUBERNETES POD HAS DIFFERNT VOLUME MOUNT
+
+THE BROKER ID AFFECTS THE RESOURCE TO USE 
+SO THE RESOURCE THAT MANAGES THE PODS BASICALLY THE BROKERS THAT WAY IF WE WANT TO CHANGE THE KFAKA IMAGE OR MAKE A COMMON CONFIGURATION 
+
+DEPLOYMENT IS WHAT WE WILL USE TO MANAGE THE PODS BUT NOT THE BROKERS
+
+SINCE IT DEPLOYS ONE PODS AND WAIT TILL ITS DEFINITION IS READY THEN RUN ALL THE PODS WILL HAVE THE SAME ID
+
+SO WE USE STATEFUL SET
+
+
+
+STATEFUL SET
+
+it is used to deployed ordely deployments, scaling and automated rolling updates
+
+it does it ordely and gives it a unique identity ID
+
+it uses PERSISTENT VOLUME 
+AND STATEFUL SET IS WHAT WE WILL USE TO PRODUCE THE BROKERS UNIQUELY
+AND THE UPDATES ARE KEPT PROPERLY
+AND THE PODS USES THE SAME UNDELINE STORAGE
+
+
+WE still need to prepare a listeners and advertisers
+
+this listeners and advertisers are in the metadata
+
+so we have the kafka client and the bootstrap server that sends message to the broker 0 and if the info is wrong it gives direction on the kafka cluster
+
+
+
+RUNNING A MULTI BROKER CLUSTER IN CONTAINERS IN DOCKER
+
+SO WE WILL RUN THE KLUSTER WITH DIFFERENT BROKERS
+
+FIRST RUN THE ZooKeeper
+AND ITS ON 
+
+THEN run 
+docker run -rm -e BROKER_ID=0 -e ZOOKEEPER_CONNECT=host.docker.internal:2181 -e KAFKA_LISTENERS=PLAINTEXT://:9092 -e KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://host.docker.internal:9092 -p 9092:9092 debezium/kafka
+
+for second broker
+
+docker run -rm -e BROKER_ID=1 -e ZOOKEEPER_CONNECT=host.docker.internal:2181 -e KAFKA_LISTENERS=PLAINTEXT://:9092 -e KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://host.docker.internal:9093 -p 9093:9092 debezium/kafka
+
+for the 3rd broker
+
+docker run -rm -e BROKER_ID=2 -e ZOOKEEPER_CONNECT=host.docker.internal:2181 -e KAFKA_LISTENERS=PLAINTEXT://:9092 -e KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://host.docker.internal:9094 -p 9094:9092 debezium/kafka
+
+
+now we create a topic
+
+./bin/kafka-topics.sh --create --topic my-topic --bootstrap-server host.docker.internal:9094 --partition 1 --replication-factor 3
+
+./bin/kafka-console-producer.sh --topic my-topic --bootstrap-sever host.docker.internal:9094
+
+this runs  you can send the messages
+
+
+#############################################################################################################################################################################################
+#############################################################################################################################################################################################
+
+when running kafka in KUBERNETES 
+
+run the zookeeper first 
+
+then run statefulset 
+
+we use the image debezium and the port is 9092
+
+then we create environment like what we did in docker
+
+env:
+- name: BROKER_ID
+  value: '0'
+- name: ZOOKEEPER_CONNECT
+  value: "host.docker.internal:2181"  # this happens when you run the kafka on kubernetes but it needs to connect with the zookeeper on your docker image host:2181 
+  # so when you deploy your kafka you need to connect with the zookeeper in your k8s
+
+  now you have to exec inside the pod 
+  run the topics
+1. 
+  ./bin/kafka-topics.sh --list --bootstrap-server kafka-0:9092
+
+to create topic 
+2. 
+
+./bin/kafka-topics.sh --create --topic mytopic --replication-factor 1 --partitions 1  --bootstrap-server <pod-name>:9092
+
+3. now produce the topic using the producer command
+./bin/kafka-console-producer.sh --bootstrap-server kafka-0:9093 --topic mytopic
+ now you can run the topics 
+ >hey
+ >mechanism
+ >hey
+4. now consume the topics using the consumer command
+./bin/kafka-console-consumer.sh --bootstrap-server <pod-name>:9093 --topic mytopic --from-beginning
+./bin/kafka-console-consumer.sh --bootstrap-server <pod-name>:9092 --topic mytopic --from-beginning 
+./bin/kafka-console-consumer.sh --bootstrap-server kafka-0:9092 --topic mytopic --from-begi
+>hey
+>mechanism
+>hey
+
+now to deploy the kafka in kubernetes you need 
+
+we need the listener_name and the advertiser sshould be DIFFERENT
+
+you can see the adverister port is using a differnet port and its sending the port out on 9093 or 9094
+thats the port exposed
+
+#####################################################################################################################################
+############################################################################################################################################
+
+to run multiple brokers on kubernetes
+
+we will set the listeners and advertisers to have different ports so it wont CLASH
+
+so we can set as many adveristsers as possible
+
+so do it you use statefulset
+
+we will use service resource 
+
+here we will use headless service
+
+it allows the pods in a stateful set to be accessed using dns 
+
+1. so we create a stateful set 
+    the stateful set deploys the pods
+
+2. we create the headless service
+
+remeber headless service is like node port and load balancer
+
+and the headless service is what behaves like a representative of any of the pod 
+
+all the pods has 9092
+but the headless service can move from 9092 to 9093 to 9094 so as to send the right message or service to the pod and prevent clash  
+
+ the headless service will serve as the advertiser and can change :    
+ 
+ brokers use this address PLAINTEXT://kafka-0.headless.default.svc:9092
+------------------------------------------
+- in node port we will use 3 node port
+i. one bootstrap service is the first to be run 
+
+ii. we also run the headless service for the kafka svcs that will represent the pods deployed by the statefulset
+ 
+iii we run the service pods for the three different brokers/ node 
+    svc 1= 30000
+    svc 2= 30001
+    svc 3= 30002
+  this service is what we use to interact with from out side when creating our topics so as not to cause clashing 
+
+we set up the stateful set that has all the envirnoment set and a command sh into the pods to change the advertisers port and the listeners port without execing into the pods
+
+then we also create envirnoment for the brokers and advertiser port to be CHANGED
+
+now we deploy the zookeeper headless service  this will allow kafka to call or use zookeeper 
+
+we then also deploy the zookeeper statefulset which allows deployment of the kafka but its just 1 instance unlike the kafka that uses 3 pods
+
+then we can run the topic from outside 
+
+./bin/kafka-topics.sh --create --topic mytopic --replication-factor 3 --partitions 1  --bootstrap-server kafka-0:30000
+
+
+now we can run liveliness probe and readiness probe for zookeeper
+
+and configure this will check if the pods are running well
+
+livenessProbe:
+  failureThreshold: 1
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  successThreshold: 1
+  tcpSocket:
+    port: client
+  timeoutSeconds: 1
+  port:2181  # here we want the zookeeper to talk to 2181 port and if it is able to listen on it, it provides a suceess result
+  or <client> cause the port name is client
+
+  now the readiness probe
+
+  readinessProbe:
+    failureThreshold: 1
+    initialDelaySeconds: 5
+    periodSeconds: 5
+    successThreshold: 1
+    tcpSocket:
+    port: client
+  timeoutSeconds: 1
+
+
+now we run livenessProbe and readiness probe for kafka statefulset
+so we can choose several ways to check liveness and readiness probe from the kafka website
+
+and sometimes brokers takes a while before it starts
+
+here we will create a txt and check it 
+
+to increase the availablity of the kafka brokers in a pod we have to use affinity and non affinity rules 
+
+affinity and anti affinity rules helps you to know where kubernetes deploy the pods
+
+The two ways you can use the affinity rules
+
+use 
+1. requiredDuringSchedulingIgnoredDuring Execution
+menaing when kubernetes is deploying the node it is only when the node that meets the antiaffinity requirement and this spreads out the kafka pods
+
+2. preferredDuringSchedulingIgnoreDuringExecution
+this is where the pods arent spread out and if one node goes down and all the brokers goes down
+
+
+so to deploy the kafka 
+deployy the zookeeper and the headless set
+then deploy the kafka headless service
+and kafka service before satefulset

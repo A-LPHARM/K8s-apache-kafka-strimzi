@@ -6,7 +6,7 @@ step 1 deploy strimzi application that simplifies the process to mointor the kaf
         helm repo add strimzi https://strimzi.io/charts
 
         then install using 
-        helm install my-strimzi-kafka-operator strimzi/strimzi-kafka-operator --version 0.38.0 -n debezium
+        helm install my-strimzi-kafka-operator strimzi/strimzi-kafka-operator --version 0.38.0 -n kafka
     
     it contains
 
@@ -26,20 +26,81 @@ When you deploy Strimzi, you first deploy the Cluster Operator. The Cluster Oper
 step 2 deploy apache kafka 
 
 - the components deployed in kafka
- Kafka cluster of broker nodes
+- a broker uses apache ZooKeeper for storing configurations data and for cluster coordination
 
-ZooKeeper cluster of replicated ZooKeeper instances
+- A broker is referred to a server or node that orchestrates the storage and passing of messages 
 
-Kafka Connect cluster for external data connections
+- ZooKeeper cluster of replicated ZooKeeper instances
 
-Kafka MirrorMaker cluster to mirror the Kafka cluster in a secondary cluster
+- topic = provides a destination for the storage of data each topic is split into one or more partitions
 
-Kafka Exporter to extract additional Kafka metrics data for monitoring
+- kafka cluster a group of broker instances
 
-Kafka Bridge to make HTTP-based requests to the Kafka cluster
+- partition - partitioning takes a single topic log and breaks it into multiple logs each of whiich can live on a seperate node in a kafka cluster
+- Kafka Connect cluster for external data connections
+
+- Kafka MirrorMaker cluster to mirror the Kafka cluster in a secondary cluster
+
+Kafka MirrorMaker replicates data between two Kafka clusters, within or across data centers.
+
+MirrorMaker takes messages from a source Kafka cluster and writes them to a target Kafka cluster.
+
+- Kafka Exporter to extract additional Kafka metrics data for monitoring
+
+Kafka Exporter
+
+Kafka Exporter extracts data for analysis as Prometheus metrics, primarily data relating to offsets, consumer groups, consumer lag and topics. Consumer lag is the delay between the last message written to a partition and the message currently being picked up from that partition by a consumer
+
+- Kafka Bridge to make HTTP-based requests to the Kafka cluster
 
 Cruise Control to rebalance topic partitions across broker nodes
 
+- use cases of kafka cases 
+
+- and kafka uses 
+
+
+once you have deployed your kafka cluster 
+
+then you deploy the my sql cluster database
+
+
+to connect the sql database serving as a microservice 
+
+you need to deploy a kafka cluster connect
+
+Kafka Connect
+
+Kafka Connect is an integration toolkit for streaming data between Kafka brokers and other systems using Connector plugins. Kafka Connect provides a framework for integrating Kafka with an external data source or target, such as a database like my-sql maria-db, for import or export of data using connectors like debzium.
+Connectors are plugins that provide the connection configuration needed.
+like debzium connector
+
+A source connector pushes external data into Kafka.
+
+A sink connector extracts data out of Kafka
+
+External data is translated and transformed into the appropriate format.
+
+You can deploy Kafka Connect with build configuration that automatically builds a container image with the connector plugins you require for your data connections.
+
+then deploy a debezium connector  to the cluster connector
+
+
+after deploying the mysql container for collection of the data 
+
+then you use docker image to create your kafka connector 
+
+first download the extract the debezium mysql connector archive 
+
+curl https://repo1.maven.org/maven2/io/debezium/debezium-connector-mysql/1.0.0.Final/debezium-connector-mysql-1.0.0.Final-plugin.tar.gz \
+| tar xvz
+
+
+the prepare a Dockerfile which adds the connector files to the strimzi kafka connect image
+
+Docker build . -t henriksin1/connect-debezium
+
+docker push henriksin1/connect-debezium
 
 
 
@@ -69,41 +130,6 @@ Cruise Control to rebalance topic partitions across broker nodes
 
 
 
-
-
-
-
-
-
-
-
-
-commands
-
-{ 508  kubectl apply -f data-collect.yaml
-  509  helm repo add strimzi https://strimzi.io/charts
-  510  helm install my-strimzi-kafka-operator strimzi/strimzi-kafka-operator --version 0.38.0 -n debezium
-  511  helm manifest my-strimzi-kafka-operator strimzi/strimzi-kafka-operator
-  512  helm get manifest my-strimzi-kafka-operator strimzi/strimzi-kafka-operator
-  513  helm get manifest my-strimzi-kafka-operator
-  514  helm template my-strimzi-kafka-operator strimzi/strimzi-kafka-operator
-  515  echo  'admin' | base64
-  516  echo  'password' | base64
-  517  kubectl apply -f secrets.yaml
-  518  kubectl apply -f rbac-debezium-sql.yaml
-  531  kubectl apply -f rbac-cluster-binding.yaml
-  532  kubectl get all -n debezium
-  533  kubectl get serviceaccount -n debzium
-  534  kubectl get rolebinding -n debezium
-  535  kubectl get role -n debezium
-  536  kubectl delete -f rbac-cluster-binding.yaml
-  537  kuebctl apply -f serviceaccount.yaml
-  538  kubectl apply -f serviceaccount.yaml
-  539  kubectl apply -f rbac-cluster-binding.yaml
-  540  kubectl get role -n debezium
-  541  kubectl get rolebinding -n debezium
-  542  kubectl get clusterrolebinding -n debezium
-  }
 
 
 

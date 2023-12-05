@@ -1,8 +1,8 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: henry-connectior-configuration-role
-  namespace: debezium
+  name: kafka-connectior-configuration-role
+  namespace: kafka
 rules:
 - apiGroups: [""]
   resources: ["secrets"]
