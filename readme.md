@@ -185,4 +185,4 @@ kubectl -n kafka exec my-cluster-kafka-0 -c kafka -i -t -- bin/kafka-console-con
 Pictures and documentation on connecting to the SQL database serving as a microservice.
 ```
 
-Feel free to adjust and enhance the documentation as needed.
+Feel free to adjust and enhance the configuration as needed.
