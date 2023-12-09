@@ -1,0 +1,365 @@
+STEP 1  i  first download the extract the debezium mysql connector archive 
+
+sudo curl https://repo1.maven.org/maven2/io/debezium/debezium-connector-mysql/1.0.0.Final/debezium-connector-mysql-1.0.0.Final-plugin.tar.gz | tar xvz
+
+ii then you build your docker image for the kafka connect and connector 
+ by using this dockerfile
+
+FROM strimzi/kafka:0.20.1-kafka-2.5.0
+USER root:root
+RUN mkdir -p /opt/kafka/plugins/debezium
+COPY ./debezium-connector-mysql/ /opt/kafka/plugins/debezium/
+USER 1001
+
+then you use docker image to create your kafka connector 
+
+the prepare a Dockerfile which adds the connector files to the strimzi kafka connect image
+
+Docker build . -t henriksin1/connect-debezium
+
+docker push henriksin1/connect-debezium
+
+or use the docker repo stated here 
+
+
+step 2 create namespace for all the deployments 
+
+kubectl apply -f 0-namespace.yaml
+
+step 3 deploy strimzi operators  from the operator lifecycle manager this simplifies the process to mointor the kafka clusters
+        each operator manages kafka and performs a seperate function.
+        this installation deploys the custom resources definition CRD is an extension of the Kubernetes API that is not necessarily available in a default Kubernetes installation. It represents a customization of a particular Kubernetes installation. However, many core Kubernetes functions are now built using custom resources, making Kubernetes more modular.
+        basically we are customizing our resources for the operators to run effortlessly
+
+        run this commands 
+        to obtain the latest releases
+        curl -L https://github.com/operator-framework/operator-lifecycle-manager/releases/download/v0.26.0/install.sh -o install.sh
+        chmod +x install.sh
+        ./install.sh v0.26.0
+or 
+        using helm install the repo 
+        helm repo add strimzi https://strimzi.io/charts
+
+        then install using 
+        helm install my-strimzi-kafka-operator strimzi/strimzi-kafka-operator --version 0.38.0 -n kafka
+
+    then you run
+        kubectl create -f https://operatorhub.io/install/strimzi-kafka-operator.yaml
+
+
+    it contains
+
+- Cluster Operator  for kafka clusters
+The Cluster Operator handles the deployment and management of Apache Kafka clusters on Kubernetes. It automates the setup of Kafka brokers, and other Kafka components and resources.
+including dependies like zookeeper
+
+- Topic Operator   for topics
+The Topic Operator manages the creation, configuration, and deletion of topics within Kafka clusters.
+
+- User Operator  for kafka users
+The User Operator manages Kafka users that require access to Kafka brokers.
+
+When you deploy Strimzi, you first deploy the Cluster Operator. The Cluster Operator is then ready to handle the deployment of Kafka. You can also deploy the Topic Operator and User Operator using the Cluster Operator (recommended) or as standalone operators. You would use a standalone operator with a Kafka cluster that is not managed by the Cluster Operator.
+
+
+step 4 
+deploy our secrets this allows the connectors and kafka  have access into the data base and run the topics
+run 
+kubectl -n kafka create secret generic debezium-secret --from-file=secrets.properties
+create the file secrets.properties 
+
+step 5
+deploy the roleback access control 
+picture here
+kubectl apply -f rbac-debezium-role.yaml
+
+step 6 
+deploy the service account to combine with the rbac and secrets
+picture
+kubectl apply -f serviceaccount.yaml
+
+step 7
+deploy the rbac cluster binding resources which binds the service to the role
+picture 
+kubectl apply -f rbac-cluster-binding.yaml
+
+step 8 
+deploy the kafka cluster we are using the
+picture 
+kubectl apply -f kafka-kluster.yaml
+
+note confirm the cluster is running 
+
+kubectl wait kafka/my-cluster --for=condition=Ready --timeout=300s -n kafka
+
+then you exec into the kafka cluster to run the topics and see if its consumed
+
+
+after the kafka pod is running you run 
+
+this to produce a topic 
+
+kubectl -n kafka exec my-cluster-kafka-0 -c kafka -i -t -- bin/kafka-console-producer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic my-topic
+
+
+ then open another terminal to confirm the topics are consumed
+
+kubectl -n kafka exec my-cluster-kafka-0 -c kafka -i -t -- bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic my-topic --from-beginning
+
+ -- bin/kafka-console-consumer.sh --bootstrap-server my-cluster-kafka-bootstrap:9092 --topic my-topic --from-beginning
+
+- the components deployed in kafka
+- a broker uses apache ZooKeeper for storing configurations data and for cluster coordination
+
+- A broker is referred to a server or node that orchestrates the storage and passing of messages 
+
+- ZooKeeper cluster of replicated ZooKeeper instances
+
+- topic = provides a destination for the storage of data each topic is split into one or more partitions
+
+- kafka cluster a group of broker instances
+
+- partition - partitioning takes a single topic log and breaks it into multiple logs each of whiich can live on a seperate node in a kafka cluster
+- Kafka Connect cluster for external data connections
+
+- Kafka MirrorMaker cluster to mirror the Kafka cluster in a secondary cluster
+
+Kafka MirrorMaker replicates data between two Kafka clusters, within or across data centers.
+
+MirrorMaker takes messages from a source Kafka cluster and writes them to a target Kafka cluster.
+
+- Kafka Exporter to extract additional Kafka metrics data for monitoring
+
+Kafka Exporter
+
+Kafka Exporter extracts data for analysis as Prometheus metrics, primarily data relating to offsets, consumer groups, consumer lag and topics. Consumer lag is the delay between the last message written to a partition and the message currently being picked up from that partition by a consumer
+
+- Kafka Bridge to make HTTP-based requests to the Kafka cluster
+
+Cruise Control to rebalance topic partitions across broker nodes
+
+- use cases of kafka cases 
+
+- and kafka uses 
+
+step 9
+once you have deployed your kafka cluster 
+
+then you deploy the my sql cluster database
+
+after deploying the database
+
+kubectl apply -f 6-sql.yaml
+
+then confirm the database is running and find the end port 
+
+kubectl describe service mysql -n kafka
+
+use it and connect with your local mysql workbench 
+
+pictures 
+
+to connect the sql database serving as a microservice 
+
+
+Step 10
+
+run the kafka connector 
+first we deploy 
+kafka connect
+
+you need to deploy a kafka cluster connect
+
+Kafka Connect
+
+Kafka Connect is an integration toolkit for streaming data between Kafka brokers and other systems using Connector plugins. Kafka Connect provides a framework for integrating Kafka with an external data source or target, such as a database like my-sql maria-db, for import or export of data using connectors like debzium.
+Connectors are plugins that provide the connection configuration needed.
+like debzium connector
+
+A source connector pushes external data into Kafka.
+
+A sink connector extracts data out of Kafka
+
+External data is translated and transformed into the appropriate format.
+
+You can deploy Kafka Connect with build configuration that automatically builds a container image with the connector plugins you require for your data connections.
+
+then deploy a debezium connector  to the cluster connector
+
+
+after deploying the mysql container for collection of the data 
+
+then you use docker image to create your kafka connector 
+
+to run the kafka connect 
+
+kubectl apply -f kafka-connect.yaml
+
+then you confirm all the pods are running 
+
+kubectl get all -n kafka
+
+then run 
+ kubectl logs debezium-connect-cluster-connect-0 -n kafka
+
+ check if the logs are good
+
+ step 11
+
+ create your kafka connector file 
+
+ kubectl apply -f debezium-connector.yaml
+
+ pictures of logs with sql
+
+ the run
+
+ kubectl describe kafkaconnector debezium-connector-mysql -n kafka
+
+ once it shows you have connection you can run your topics
+
+now its show time 
+
+kubectl -n kafka exec my-cluster-kafka-0 -c kafka -i -t -- bin/kafka-topics.sh --bootstrap-server localhost:9092 --list
+
+pics
+
+kubectl -n kafka exec my-cluster-kafka-0 -c kafka -i -t -- bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic mysql.inventory.customers 
+
+this gives you the consumer results for every topic that given from the data base
+
+exec into the database
+
+ kubectl exec -it mysql-6597659cb8-j9rk4 -n kafka -- sh
+
+ then 
+mysql -h mysql -u root -p
+
+password:
+
+mysql> use inventory;
+
+mysql> show tables;
+
++---------------------+
+| Tables_in_inventory |
++---------------------+
+| addresses           |
+| customers           |
+| geom                |
+| orders              |
+| products            |
+| products_on_hand    |
++---------------------+
+6 rows in set (0.00 sec)
+
+
+
+mysql> SELECT * FROM customers;
+
++------+------------+-----------+-----------------------+
+| id   | first_name | last_name | email                 |
++------+------------+-----------+-----------------------+
+| 1001 | Sally      | Thomas    | sally.thomas@acme.com |
+| 1002 | George     | Bailey    | gbailey@foobar.com    |
+| 1003 | Edward     | Walker    | ed@walker.com         |
+| 1004 | Anne       | Kretchmar | annek@noanswer.org    |
++------+------------+-----------+-----------------------+
+
+
+mysql> UPDATE customers SET first_name='Anne Marie' WHERE id=1004;
+Query OK, 1 row affected (0.00 sec)
+Rows matched: 1  Changed: 1  Warnings: 0
+
+every data given is transferred on the other terminal 
+
+
+
+kubectl -n kafka exec my-cluster-kafka-0 -c kafka -i -t -- bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic mysql --from-beginning
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+### Step 1: Encode PostgreSQL admin username and password using base64
+    Linux
+        # Encode a string to base64
+            echo  'admin' | base64
+       
+        # Decode our base64 string
+            echo 'YQBkAG0AaQBuAA==' | base64 --decode
+
+    Windows PowerShell
+        # Encode a string
+            $MYTEXT = 'admin'
+            $ENCODED = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($MYTEXT))
+            Write-Output $ENCODED
+
+        # Decode a string
+            $MYTEXT = 'YQBkAG0AaQBuAA=='
+            $DECODED = [System.Text.Encoding]::Unicode.GetString([System.Convert]::FromBase64String($MYTEXT))
+            Write-Output $DECODED
+
+    Python
+        # Encoding a string
+            import base64
+            encoded = base64.b64encode(b'admin')
+            encoded
+
+        # Decoding
+            decoded = base64.b64decode(b'dGhlZGV2b3BzbGlmZS5jb20=')
+            decoded

@@ -1,7 +1,7 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: kafka-connectior-configuration-role
+  name: kafka-connector-configuration-role
   namespace: kafka
 rules:
 - apiGroups: [""]

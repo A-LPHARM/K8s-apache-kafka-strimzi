@@ -6,13 +6,13 @@ metadata:
   annotations:
     strimzi.io/use-connector-resources: "true"
 spec:
-  version: 3.1.0
-  image: henriksin1/connect-debezium
+  version: 3.6.0
+  image: henriksin1/connect-debezium:v1
   replicas: 1
   bootstrapServers: my-cluster-kafka-bootstrap:9092
   config:
-    config.providers: secrets
-    config.providers.secrets.class: io.strimzi.kafka.KubernetesSecretConfigProvider
+    # config.providers: secret
+    # config.providers.secrets.class: io.strimzi.kafka.KubernetesSecretConfigProvider
     group.id: connect-cluster
     offset.storage.topic: connect-cluster-offsets
     config.storage.topic: connect-cluster-configs
@@ -21,3 +21,10 @@ spec:
     config.storage.replication.factor: 1
     offset.storage.replication.factor: 1
     status.storage.replication.factor: 1
+    config.providers: file
+    config.providers.file.class: org.apache.kafka.common.config.provider.FileConfigProvider
+  externalConfiguration:
+    volumes:
+      - name: connector-config
+        secret:
+          secretName: debezium-secret
