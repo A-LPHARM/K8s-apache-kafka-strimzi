@@ -1,6 +1,4 @@
-Certainly! Here's a structured README.md file based on the provided steps:
 
-```markdown
 # Kafka and MySQL Integration on Kubernetes
 
 ## Step 1: Download and Build Debezium MySQL Connector
